@@ -1,0 +1,66 @@
+#!/bin/bash
+
+# A simple Neofetch like fetch tool which just prints some static text. Mostly copied from siduck, so kudos to him. you can find the original at https://github.com/siduck/chadwm/tree/main/scripts/fetch
+
+clear
+c=3 b=4
+for j in c b; do
+  for i in {0..7}; do
+    printf -v $j$i "%b" "\e[${!j}${i}m"
+  done
+done
+
+user=$(whoami)
+host=$(uname -a | awk '{print $2}')
+memory=$(free -h)
+os=$(source /etc/os-release && echo $PRETTY_NAME)
+kernel=$(uname -sr)
+wm="$(xprop -id $(xprop -root -notype | awk '$1=="_NET_SUPPORTING_WM_CHECK:"{print $5}') -notype -f _NET_WM_NAME 8t | grep "WM_NAME" | cut -f2 -d \")"
+mem=$(free -m | sed -n 's/^Mem:\s\+[0-9]\+\s\+\([0-9]\+\)\s.\+/\1/p')
+mem_total=$(free -m | awk '/^Mem:/ {print $2}')
+pkgs="$(pacman -Q | wc -l)"
+shell=$(echo "$SHELL" | awk -F/ '{for ( i=1; i <= NF; i++) sub(".", substr(toupper($i),1,1) , $i); print $NF}')
+colors=$(for i in {0..7}; do echo -en "\e[${1}$((30 + $i))m▁▁▁"; done)
+term=$(basename "/"$(ps -o cmd -f -p $(cat /proc/$(echo $$)/stat | cut -d \  -f 4) | tail -1 | sed 's/ .*$//'))
+
+get_uptime() {
+  IFS=. read -r s _ </proc/uptime
+  d=$((s / 60 / 60 / 24))
+  h=$((s / 60 / 60 % 24))
+  m=$((s / 60 % 60))
+  case "$d" in [!0]*) uptime="${uptime}${d}d " ;; esac
+  case "$h" in [!0]*) uptime="${uptime}${h}h " ;; esac
+  case "$m" in [!0]*) uptime="${uptime}${m}m " ;; esac
+  echo ${uptime:-0m}
+}
+
+cat <<EOF
+${c7} ▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁
+${c7} ▎▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▎ ${c2} ${c7} ${c3}  ${c1} ${c7}▎ ${c1}${c4}${c5} ${c4}$user@${c5}$host
+${c7} ▎                            ▎ ${c4}
+${c7} ▎        ${c5}█▀▀▀▀▀▀▀▀▀█${c7}         ▎ ${c1}os     ${c7} artix
+${c7} ▎        ${c5}█         █${c7}         ▎ ${c1}kernel ${c7} linux zen
+${c7} ▎        ${c5}█  █   █  █${c7}         ▎ ${c1}wm     ${c7} bspwm
+${c7} ▎        ${c7}█         █${c7}         ▎ ${c1}shell  ${c7} fish
+${c7} ▎        ${c7}▀█▄▄▄▄▄▄▄█▀${c7}         ▎ ${c1}term   ${c7} st
+${c7} ▎                            ▎ ${c1}pkgs   ${c7} $pkgs
+${c7} ▎                            ▎ ${c1}uptime ${c7} $(get_uptime)
+${c7} ▎  ${c5} ${c4}artix  ${c5}  ${c4}runit ${c5}^_^   ${c7} ▎ ${c1}memory ${c7} $mem / $mem_total$(echo MiB)
+${c7} ▎▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▎ $colors
+EOF
+
+if [[ $1 == "-b" ]]; then
+  for f in {0..6}; do
+    echo -en "\033[$((f + 41))m\033[$((f + 30))m██▓▒░"
+  done
+  echo -en "\033[37m██\n"
+  echo
+  for f in {0..6}; do
+    echo -en "\033[$((f + 41))m\033[1;$((f + 30))m██▓▒░"
+  done
+  echo -en "\033[1;37m██"
+  echo -e "\033[0m"
+  echo
+else
+  :
+fi
